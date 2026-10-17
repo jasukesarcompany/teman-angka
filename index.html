@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Teman Angka</title>
+<style>
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font-family:'Trebuchet MS','Comic Sans MS',system-ui,sans-serif;background:#FFF8E1;color:#1B2340;overflow:hidden;user-select:none;-webkit-tap-highlight-color:transparent}
+button{font-family:inherit;cursor:pointer;color:inherit}
+.screen{display:none;height:100%;flex-direction:column;align-items:center}
+.screen.on{display:flex}
+.btn{min-height:52px;padding:0 18px;border-radius:16px;border:3px solid #1B2340;background:#fff;font-weight:800;font-size:16px}
+.btn:active{transform:scale(.96)}
+.big{font-size:28px;min-height:68px;padding:0 36px;border:none;background:#1E6FE0;color:#fff;box-shadow:0 7px 0 #144FA8}
+.big.alt{background:#fff;color:#1B2340;border:3px solid #1B2340;box-shadow:0 7px 0 #c9c3ad;font-size:20px;min-height:56px}
+/* menu */
+#menu{justify-content:center;gap:16px;text-align:center;padding:16px}
+#menu h1{font-size:clamp(32px,8vw,54px)}
+#owlMenu{width:150px;height:162px;cursor:pointer;animation:bob 1.6s ease-in-out infinite}
+/* game */
+#game{padding:0 10px 10px;gap:8px}
+#bar{width:100%;max-width:520px;height:62px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+#stars{font-size:30px;letter-spacing:3px}
+.star{display:inline-block;filter:grayscale(1);opacity:.3;transition:.3s}
+.star.on{filter:none;opacity:1;transform:scale(1.15)}
+#prompt{display:flex;align-items:center;gap:10px;font-size:clamp(26px,7vw,42px);font-weight:800}
+#prompt b{color:#1E6FE0;font-size:1.2em}
+#again{width:56px;height:56px;border-radius:50%;border:3px solid #1B2340;background:#fff;font-size:26px}
+#timer{width:84px;height:84px;position:relative;flex:none}
+#timer svg{transform:rotate(-90deg)}
+#timer b{position:absolute;inset:0;display:grid;place-items:center;font-size:32px}
+#ring{transition:stroke-dashoffset .1s linear}
+#ring.soft{animation:soft 1.4s ease-in-out infinite}
+@keyframes soft{50%{stroke-opacity:.45}}
+#lane{position:relative;width:min(92vw,460px);height:112px;flex:none}
+#owl{position:absolute;left:0;top:6px;width:90px;height:98px;opacity:0;transform:translateY(30px) scale(.8);transition:left .9s cubic-bezier(.4,0,.2,1),transform .7s cubic-bezier(.34,1.4,.64,1),opacity .5s ease;pointer-events:none}
+#owl.show{opacity:1;transform:none}
+#owl.snap{transition:none}
+#owl .in{animation:bob 1.4s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-6px)}}
+#bubble{position:absolute;top:8px;width:max-content;max-width:120px;background:#fff;border:3px solid #1B2340;border-radius:14px;padding:6px 10px;font-weight:800;font-size:15px;line-height:1.2}
+#owl.r #bubble{left:96px}#owl.l #bubble{right:96px}
+#choices{display:grid;gap:14px;width:min(92vw,460px);justify-items:center}
+.num{width:100%;max-width:200px;aspect-ratio:1;font-size:clamp(54px,16vw,104px);font-weight:900;border:none;border-radius:30px;background:var(--c);color:var(--t);box-shadow:0 8px 0 var(--d);transition:background .35s,color .35s,transform .15s}
+.num:hover{transform:scale(1.05)}
+.num:active{transform:translateY(7px);box-shadow:0 1px 0 var(--d)}
+.num.bad{background:#E5484D;color:#fff}
+.num.shake{animation:shake .4s}
+.num.pop{animation:pop .5s}
+@keyframes shake{20%{transform:translateX(-12px)}40%{transform:translateX(12px)}60%{transform:translateX(-8px)}80%{transform:translateX(8px)}}
+@keyframes pop{50%{transform:scale(1.12)}}
+.num.glow{animation:glow 1s infinite}
+@keyframes glow{50%{box-shadow:0 0 0 12px rgba(255,214,10,.85),0 8px 0 var(--d)}}
+/* overlays */
+#toast{position:fixed;left:50%;top:26%;transform:translate(-50%,-20px);background:#FFD60A;border:4px solid #1B2340;border-radius:24px;padding:14px 24px;font-size:clamp(22px,5vw,36px);font-weight:900;opacity:0;transition:.4s;z-index:25;text-align:center;pointer-events:none;width:max-content;max-width:90vw}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+.conf{position:fixed;top:-40px;font-size:30px;animation:fall 2.4s linear forwards;z-index:15;pointer-events:none}
+@keyframes fall{to{transform:translateY(112vh) rotate(540deg)}}
+#confirm{position:fixed;inset:0;background:rgba(27,35,64,.55);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+#confirm.on{display:flex}
+#confirm div{background:#fff;border-radius:24px;padding:24px;max-width:360px;width:100%;text-align:center;display:flex;flex-direction:column;gap:14px}
+#confirm h2{font-size:24px}
+/* dashboard */
+#dash{position:fixed;inset:0;background:#F1F4FA;z-index:40;overflow:auto;display:none}
+#dash.on{display:block}
+#dhead{position:sticky;top:0;background:#1B2340;color:#fff;display:flex;justify-content:space-between;align-items:center;padding:10px 14px;z-index:2}
+#dhead h2{font-size:18px}
+#dhead .btn{min-height:44px;color:#1B2340}
+#dbody{max-width:720px;margin:0 auto;padding:14px;display:flex;flex-direction:column;gap:14px;font-size:15px}
+.panel{background:#fff;border-radius:18px;padding:14px;box-shadow:0 2px 8px rgba(27,35,64,.08)}
+.panel h3{font-size:15px;margin-bottom:10px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:10px}
+.card{background:#F1F4FA;border-radius:12px;padding:10px 12px}
+.card small{display:block;color:#4a5373;font-size:12px;margin-bottom:2px}
+.card b{font-size:20px}
+#meter{height:20px;background:#E3E8F5;border-radius:10px;overflow:hidden;margin-bottom:6px}
+#meterFill{height:100%;background:#2DB35D;transition:width .5s}
+#chart{display:flex;align-items:flex-end;gap:4px;height:90px;border-bottom:2px solid #cfd6e8}
+#chart i{flex:1;min-width:6px;border-radius:4px 4px 0 0}
+.m{background:#2DB35D}.b{background:#FF9F1C}
+.legend{font-size:12px;color:#4a5373;margin-top:6px}
+.set{display:flex;flex-direction:column;gap:12px}
+.set label{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.set select{font-size:16px;padding:8px;border-radius:10px;border:2px solid #1B2340;background:#fff}
+#mgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
+.mc{background:#F1F4FA;border:2px solid transparent;border-radius:14px;padding:8px;text-align:center;display:flex;flex-direction:column;gap:2px}
+.mc strong{font-size:30px;line-height:1}.mc span{font-size:12px;font-weight:700}.mc em{font-style:normal;color:#1E6FE0;letter-spacing:2px;font-size:13px}.mc small{font-size:11px;color:#4a5373}
+.mc.ok{background:#DDF5E6;border-color:#2DB35D}.mc.lock{opacity:.4}
+#tour{position:fixed;inset:0;background:rgba(27,35,64,.6);display:none;align-items:center;justify-content:center;z-index:60;padding:16px}
+#tour.on{display:flex}
+#tour>div{background:#fff;border-radius:22px;padding:20px;max-width:440px;width:100%;display:flex;flex-direction:column;gap:12px;max-height:92vh;overflow:auto}
+#tour h2{font-size:20px}#tour p{font-size:15px;line-height:1.5}#tour small{color:#4a5373}
+#tdots{display:flex;gap:6px;justify-content:center}#tdots i{width:10px;height:10px;border-radius:50%;background:#cfd6e8}#tdots i.on{background:#1E6FE0}
+.trow{display:flex;gap:8px;justify-content:space-between}
+.pri{background:#1E6FE0;color:#fff;border-color:#1E6FE0}
+#dhead{flex-wrap:wrap}
+#hist{display:flex;flex-direction:column;gap:6px}
+.hr{display:flex;align-items:center;gap:10px;background:#F1F4FA;border-radius:10px;padding:8px 10px;border-left:6px solid #2DB35D}
+.hr.hb{border-left-color:#FF9F1C}.hr b{font-size:22px;width:28px}.hr span{flex:1;font-size:14px}.hr small{color:#4a5373}
+#menuGuide{background:#E8F1FF;border-color:#1E6FE0;color:#144FA8}
+#guide{position:fixed;inset:0;background:rgba(27,35,64,.6);display:none;align-items:center;justify-content:center;z-index:60;padding:14px}
+#guide.on{display:flex}
+#guide>div{background:#fff;border-radius:22px;padding:18px;max-width:580px;width:100%;max-height:92vh;display:flex;flex-direction:column;gap:12px}
+.ghead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+#guide h2{font-size:20px}
+#gbody{overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;display:flex;flex-direction:column;gap:12px}
+#gbody section{background:#F1F4FA;border-radius:16px;padding:14px}
+#gbody h3{font-size:17px;margin-bottom:8px}
+#gbody ul{padding-left:20px}#gbody li{margin-bottom:7px;font-size:15px;line-height:1.5}
+#dash{overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.panel,.card,.hr{overflow-wrap:anywhere}
+@media (max-height:620px){#owlMenu{width:110px;height:119px}#menu{gap:10px}}
+@media (max-width:767px){
+ #dash{scroll-behavior:smooth}
+ #dbody{padding:12px;gap:12px;font-size:16px}
+ .panel{padding:16px}
+ .panel h3{font-size:17px;line-height:1.35}
+ .cards{grid-template-columns:1fr;gap:10px}
+ .card{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 14px}
+ .card small{font-size:15px;margin:0;flex:1}
+ .card b{font-size:22px;text-align:right}
+ #mgrid{grid-template-columns:repeat(2,1fr);gap:10px}
+ .mc strong{font-size:34px}.mc span{font-size:15px}.mc em{font-size:16px}.mc small{font-size:13px}
+ #chart{height:110px}
+ .hr{flex-wrap:wrap;padding:10px 12px}.hr span{font-size:16px;min-width:0}.hr small{font-size:14px}
+ .legend,#lvinfo{font-size:14px}
+ .set label{flex-direction:column;align-items:stretch;gap:6px;font-size:16px}
+ .set label.chk{flex-direction:row;align-items:center}
+ .set input[type=checkbox]{width:26px;height:26px}
+ .set select{width:100%;font-size:17px;min-height:48px}
+ #dhead h2{font-size:17px}
+ #guide>div,#tour>div{padding:16px}
+}
+#pct{font-size:15px;color:#4a5373;margin-top:8px}
+#sum{font-size:18px;line-height:1.5;margin-top:8px;font-weight:700}
+.badge{display:inline-block;font-size:22px;font-weight:900;padding:8px 18px;border-radius:999px}
+.b-g{background:#DDF5E6;color:#14683A}.b-y{background:#FFF3C4;color:#7A5B00}.b-o{background:#FFE3CC;color:#9A4A00}.b-n{background:#E8ECF5;color:#4a5373}
+.mc .ic{font-size:26px;font-style:normal}
+.mc.trn{background:#FFF8DA;border-color:#FFC107}
+#tips{padding-left:20px}#tips li{margin-bottom:9px;font-size:16px;line-height:1.5}
+summary{cursor:pointer;font-weight:800;font-size:16px;min-height:44px;display:flex;align-items:center}
+#reset{width:100%;margin-top:8px}
+.danger{border-color:#C0392B;color:#C0392B;background:#fff}
+.danger.arm{background:#C0392B;color:#fff}
+@media (min-width:768px){#mgrid{grid-template-columns:repeat(5,1fr)}}
+#game{overflow-y:auto;overflow-x:hidden}
+#prompt{max-width:min(94vw,520px);justify-content:center;font-size:clamp(20px,5.6vw,34px);line-height:1.15}
+#ptext{min-width:0}
+#items{display:grid;gap:8px;justify-content:center;align-items:center;background:#fff;border:3px solid #1B2340;border-radius:20px;padding:10px 14px;min-height:72px}
+.ob{width:48px;height:48px;display:grid;place-items:center;border-radius:50%;font-size:34px;line-height:1;transition:transform .25s,background .25s}
+.ob .dot{display:block;width:30px;height:30px;border-radius:50%;background:var(--dc)}
+.ob.hl{background:#FFE066;transform:scale(1.3);box-shadow:0 0 0 4px #FFC107}
+.num{max-width:min(200px,23vh)}
+#lane{height:104px}
+#items{display:flex;flex-direction:column;align-items:center;gap:10px;--cell:clamp(46px,13vw,66px);padding:14px 18px;min-height:96px;justify-content:center}
+.irow{display:flex;gap:10px;justify-content:center}
+img.ob{width:var(--cell);height:var(--cell);object-fit:contain;padding:3px;border-radius:16px;background:#fff;display:block;user-select:none;-webkit-user-drag:none}
+img.ob.hl{background:#FFE066;transform:scale(1.2);box-shadow:0 0 0 4px #FFC107}
+#menu .btn{width:min(86vw,320px)}
+#owlMenu.hit{animation:hit .65s ease}
+@keyframes hit{0%{transform:scale(1)}30%{transform:scale(1.18) translateY(-14px)}60%{transform:scale(.94)}100%{transform:scale(1)}}
+.mascot{object-fit:contain;display:block;user-select:none;-webkit-user-drag:none}
+#owl .mascot{width:90px;height:98px}
+</style></head><body>
+<svg width="0" height="0" style="position:absolute"><symbol id="owlsym" viewBox="0 0 120 130">
+<ellipse cx="18" cy="85" rx="12" ry="28" fill="#6E4326" transform="rotate(12 18 85)"/><ellipse cx="102" cy="85" rx="12" ry="28" fill="#6E4326" transform="rotate(-12 102 85)"/>
+<ellipse cx="60" cy="80" rx="44" ry="46" fill="#8D5B3A"/><path d="M22 44 L28 10 L54 30Z M98 44 L92 10 L66 30Z" fill="#6E4326"/>
+<circle cx="60" cy="52" r="38" fill="#A56B45"/><ellipse cx="60" cy="95" rx="26" ry="28" fill="#F5DEB3"/>
+<circle cx="42" cy="50" r="16" fill="#fff"/><circle cx="78" cy="50" r="16" fill="#fff"/><circle cx="44" cy="52" r="8" fill="#222"/><circle cx="76" cy="52" r="8" fill="#222"/>
+<circle cx="47" cy="49" r="3" fill="#fff"/><circle cx="79" cy="49" r="3" fill="#fff"/><path d="M53 60 L67 60 L60 74Z" fill="#FF9F1C"/>
+<ellipse cx="46" cy="124" rx="12" ry="5" fill="#FF9F1C"/><ellipse cx="74" cy="124" rx="12" ry="5" fill="#FF9F1C"/></symbol></svg>
+
+<section id="menu" class="screen on">
+ <h1>Teman Angka</h1>
+ <img id="owlMenu" class="mascot" src="maskot.png" alt="Owl, ketuk untuk menyapa" role="button" tabindex="0" draggable="false" onerror="owlFail(this)">
+ <button id="play" class="btn big">▶ Mulai Belajar</button>
+ <button id="menuDash" class="btn big alt">📊 Monitoring Guru</button>
+ <button id="menuGuide" class="btn">ℹ️ Panduan Guru &amp; Orang Tua</button>
+</section>
+
+<section id="game" class="screen">
+ <header id="bar"><button id="exit" class="btn">← Keluar</button><div id="stars"><span class="star">⭐</span><span class="star">⭐</span><span class="star">⭐</span></div><button id="guru" class="btn">📊 Guru</button></header>
+ <div id="prompt"><span id="ptext">Tekan angka <b>1</b></span><button id="again" aria-label="Ulangi suara">🔊</button>
+  <div id="timer"><svg width="84" height="84" viewBox="0 0 84 84"><circle cx="42" cy="42" r="36" fill="none" stroke="#E3E8F5" stroke-width="10"/><circle id="ring" cx="42" cy="42" r="36" fill="none" stroke="#3AA6FF" stroke-width="10" stroke-linecap="round" stroke-dasharray="226"/></svg><b id="tnum">10</b></div></div>
+ <div id="items" aria-label="Soal hitung benda"></div>
+ <div id="lane"><div id="owl"><div id="bubble"></div><div class="in"><img class="mascot" src="maskot.png" alt="Owl" width="90" height="98" draggable="false" onerror="owlFail(this)"></div></div></div>
+ <div id="choices"></div>
+</section>
+
+<div id="confirm"><div><h2>Keluar ke menu?</h2><button id="stay" class="btn big">Lanjut Main</button><button id="leave" class="btn big alt">Keluar</button></div></div>
+<div id="toast"></div>
+
+<section id="dash">
+ <div id="dhead"><h2>Monitoring Guru</h2><span style="display:flex;gap:8px"><button id="dhelp" class="btn">? Panduan</button><button id="dclose" class="btn">✕ Tutup</button></span></div>
+ <div id="dbody">
+  <div class="panel"><h3>1. Status Kemandirian</h3>
+   <div id="badge" class="badge"></div><div id="pct"></div><p id="sum"></p></div>
+  <div class="panel"><h3>2. Penguasaan Angka 1–10</h3>
+   <div id="mgrid"></div>
+   <div class="legend">🏆 Sudah paham &nbsp; ⭐ Sedang dilatih (Benda → Bentuk → Angka) &nbsp; 🔒 Belum terbuka</div></div>
+  <div class="panel"><h3>3. Panduan &amp; Saran untuk Orang Tua</h3><ul id="tips"></ul></div>
+  <details class="panel" id="adv"><summary>⚙️ Pengaturan &amp; detail teknis (opsional)</summary>
+   <div class="cards" style="margin:12px 0">
+    <div class="card"><small>JawabanBenarMandiri</small><b id="v1"></b></div><div class="card"><small>TingkatBantuan</small><b id="v2"></b></div>
+    <div class="card"><small>BantuanAktif</small><b id="v3"></b></div><div class="card"><small>WaktuTunggu (sisa)</small><b id="v4"></b></div></div>
+   <div class="set">
+    <label>Durasi hitung mundur<select id="setT"><option value="8">8 detik</option><option value="10">10 detik</option><option value="12" selected>12 detik</option><option value="15">15 detik</option><option value="20">20 detik</option></select></label>
+    <label>Syarat paham (benar berturut-turut)<select id="setN"><option value="2">2 kali</option><option value="3" selected>3 kali</option><option value="4">4 kali</option><option value="5">5 kali</option></select></label>
+    <label>Batas maks. pilihan jawaban<select id="setM"><option value="2">2 pilihan</option><option value="3">3 pilihan</option><option value="4" selected>4 pilihan</option></select></label>
+    <label class="chk">Suara<input type="checkbox" id="setS" checked></label></div>
+   <div class="set" style="margin-top:12px"><button id="chk" class="btn">🔍 Cek file gambar &amp; suara</button><div id="chkout" class="legend"></div></div>
+  </details>
+  <button id="reset" class="btn danger">🗑️ Reset Data Belajar</button>
+ </div>
+</section>
+
+<div id="guide"><div>
+ <div class="ghead"><h2>ℹ️ Panduan Guru &amp; Orang Tua</h2><button id="gx" class="btn">✕ Tutup</button></div>
+ <div id="gbody">
+  <section><h3>1. Cara kerja sistem adaptif</h3><ul>
+   <li>Soal mengikuti tahap belajar konkret → abstrak: <b>Benda</b> (hitung gambar buah, hewan, atau benda), <b>Bentuk</b> (lingkaran), lalu <b>Angka</b> (hanya suara dan simbol). Anak naik tahap setelah benar berturut-turut tanpa bantuan, dan pergantian tahap diumumkan dengan suara ("Sekarang, coba hitung bentuk!"). Timer (default 12 detik) baru jalan setelah suara selesai.</li>
+   <li>Jika anak diam sampai timer habis, <b>Owl</b> membantu. Pertama Owl muncul di tepi layar untuk memberi semangat dan timer diulang. Jika masih diam, Owl menghitung benda satu per satu ("1… 2… 3… Ada 3!"), lalu berdiri tepat di atas jawaban yang benar.</li>
+   <li><b>Fading:</b> setiap 3 jawaban benar tanpa bantuan, bantuan turun satu tingkat (penuh → isyarat → mandiri). Pada tingkat mandiri Owl tidak muncul lagi.</li>
+   <li>Angka yang sudah dipahami dibantu lebih ringan. Saat angka baru dibuka atau level naik, bantuan Owl kembali lalu dikurangi lagi.</li>
+   <li>Jawaban salah hanya membuat tombol bergetar dan merah sebentar, tanpa hukuman. Pilihan jawaban tetap 2 sampai anak paham angka dasar.</li></ul></section>
+  <section><h3>2. Cara membaca Monitoring Guru</h3><ul>
+   <li>Buka lewat tombol <b>📊 Guru</b> di pojok kanan atas saat bermain (permainan dijeda sementara), atau lewat tombol Monitoring Guru di halaman utama.</li>
+   <li><b>Status Kemandirian:</b> 🟢 Sangat Mandiri, 🟡 Sedang Belajar, atau 🟠 Butuh Dampingan, berdasarkan seberapa sering anak benar tanpa bantuan Owl.</li>
+   <li><b>Penguasaan Angka 1–10:</b> 🏆 sudah paham, ⭐ sedang dilatih, 🔒 belum terbuka.</li>
+   <li><b>Saran Orang Tua:</b> ide kegiatan di rumah yang menyesuaikan dengan kondisi anak. Tombol Reset Data Belajar ada di paling bawah.</li></ul></section>
+ </div>
+ <button id="gok" class="btn pri">Mengerti ✓</button>
+</div></div>
+<div id="tour"><div><small id="tstep"></small><h2 id="ttitle"></h2><p id="tbody"></p><div id="tdots"></div><div class="trow"><button id="tprev" class="btn">← Kembali</button><button id="tnext" class="btn pri">Lanjut →</button></div><button id="tskip" class="btn">Lewati panduan</button></div></div>
+<script>
+const $=id=>document.getElementById(id),NW=['nol','satu','dua','tiga','empat','lima','enam','tujuh','delapan','sembilan','sepuluh'];
+const COL=[{c:'#1E6FE0',t:'#fff',d:'#144FA8'},{c:'#FFC107',t:'#222',d:'#C79400'},{c:'#1F9D55',t:'#fff',d:'#146B3A'},{c:'#8E44AD',t:'#fff',d:'#62307A'}];
+const PRAISE=['Hebat!','Pintar!','Bagus sekali!','Yeay, benar!'];
+const S={mandiri:0,tingkat:2,bantuan:false,waktu:12},cfg={t:12,N:3,maxC:4},st={benar:0,mand:0,bant:0,salah:0,owl:0,log:[]};
+const Q={target:0,clean:true,t0:0,exp:0,w:0};
+let stagePrev=0,lastCat='',hdl=Infinity,owlMode='',M,pool,phase='idle',qid=0,deadline=0,paused=false,pAt=0,pPhase='',inGame=false,on=true,ac;
+// phase: idle | instr (instruksi suara, timer BELUM jalan) | wait (timer jalan) | help (Owl aktif) | done (menunggu soal berikut)
+function initM(){M={};for(let n=1;n<=10;n++)M[n]={r:1,streak:0,ok:false,benar:0,salah:0,bantu:0};pool=[1,2];stagePrev=0}
+initM();
+const choiceCount=()=>Math.min(cfg.maxC,pool.length>=7?4:pool.length>=4?3:2); // 2 pilihan sampai angka 1-3 paham
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+const VER=Date.now(),MISS=new Set(),U=s=>s.replace(/^\.\//,'').toLowerCase(); // U: jalur relatif huruf kecil semua; VER: anti-cache audio; MISS: file yang gagal dimuat
+
+/* ===== Audio queue manager: semua suara antre, tidak pernah saling memotong ===== */
+function audio(){if(!ac){try{ac=new(window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(ac&&ac.state==='suspended')ac.resume()}
+const SFX_ON=true; // false = matikan semua efek bunyi sintesis (chime), hanya rekaman mp3
+function tone(f,t,d,ty='sine',v=.2){if(!ac||!on||!SFX_ON)return;const o=ac.createOscillator(),g=ac.createGain(),s=ac.currentTime+t;o.type=ty;o.frequency.value=f;g.gain.setValueAtTime(0,s);g.gain.linearRampToValueAtTime(v,s+.02);g.gain.exponentialRampToValueAtTime(.001,s+d);o.connect(g);g.connect(ac.destination);o.start(s);o.stop(s+d+.05)}
+const sfx={ // tiap efek mengembalikan Promise yang selesai saat bunyinya selesai
+ big(){[523,659,784,1047,1319].forEach((f,i)=>tone(f,i*.09,.35,'triangle',.22));tone(1568,.5,.5,'sine',.12);return wait(1100)},
+ ok(){tone(523,0,.2,'triangle');tone(784,.12,.3,'triangle');return wait(600)},
+ no(){tone(260,0,.25,'sine',.12);tone(220,.15,.3,'sine',.1);return wait(500)},
+ level(){[523,659,784,659,784,1047].forEach((f,i)=>tone(f,i*.12,.3,'square',.1));return wait(900)}};
+const A={q:Promise.resolve(),g:0,n:0,
+ enq(fn){const g=this.g;this.n++;const p=this.q.then(()=>g===this.g?fn():0).finally(()=>{if(g===this.g)this.n--});this.q=p.catch(()=>{});return p},
+ playNow(src,txt){const L=[].concat(src);return new Promise(res=>{ // putar HANYA file mp3 rekaman (daftar cadangan berurutan); selesai saat 'ended'. txt = isi rekaman (dokumentasi saja)
+  if(!on){setTimeout(res,500);return}
+  let k=0,d=false,au=null,w=0;
+  const fin=()=>{if(d)return;d=true;clearTimeout(w);this.stopCur=null;res()};
+  const silent=()=>{if(d)return;d=true;clearTimeout(w);this.stopCur=null;setTimeout(res,300)}; // file tidak ada -> lanjut tanpa suara (tidak ada suara robot)
+  const next=()=>{if(d)return;clearTimeout(w);if(k>=L.length){silent();return}
+   const f=U(L[k++]);au=new Audio(f+'?v='+VER);      // jalur huruf kecil + ?v= agar selalu mengunduh rekaman terbaru
+   const me=au;w=setTimeout(()=>{if(au===me)next()},6000);   // gagal mulai dalam 6 detik -> file berikutnya
+   au.onplaying=()=>{clearTimeout(w);setTimeout(fin,Math.min(30,(isFinite(me.duration)?me.duration:10)+2)*1000)};
+   au.onended=fin;au.onerror=()=>{if(au===me){MISS.add(f);next()}};
+   const pr=au.play();if(pr&&pr.catch)pr.catch(e=>{if(au===me&&e&&e.name==='NotAllowedError')silent()})};
+  this.stopCur=()=>{if(au)au.pause();fin()};
+  next()})},
+ play(src,t){return this.enq(()=>this.playNow(src,t))},
+ fx(k){return this.enq(()=>sfx[k]())},
+ clear(){this.g++;this.n=0;this.q=Promise.resolve();if(this.stopCur)this.stopCur()}};
+const askQ=()=>Q.rep===3?A.play('soal-'+Q.target+'.mp3','Tekan angka '+NW[Q.target]+'.')   // tahap Angka: soal-1.mp3 ... soal-10.mp3
+ :A.play(['soal-'+Q.obj+'.mp3','soal-'+Q.cat+'.mp3'],askText());                                // rekaman per-objek; cadangan soal-buah/hewan/benda/bentuk.mp3
+const askText=()=>Q.rep===3?'Tekan angka '+NW[Q.target]+'.':'Ada berapa '+Q.noun+' di atas? Pilih angka yang sesuai ya!';
+const pointAudio=()=>owlMode==='target'?A.play('ini-dia-'+Q.target+'.mp3','Ini dia! Angka '+NW[Q.target]+'.'):A.play('pasti-bisa.mp3','Kamu pasti bisa!'); // Owl menunjuk: ini-dia-N.mp3 (isyarat ringan: pasti-bisa.mp3)
+
+/* ===== Soal berbasis mastery ===== */
+// Daftar objek = file <nama>.png di folder yang sama dengan index.html. Tambah nama di sini bila ada gambar baru (mis. 'mangga', 'gajah', 'kotak').
+const CAT={buah:{n:'buah',it:['apel','pisang','semangka','nanas'],c:'#E5484D'},
+ hewan:{n:'hewan',it:['kucing','ikan','monyet','beruang'],c:'#8E44AD'},
+ benda:{n:'benda',it:['bintang','baju','sendok','balon'],c:'#1E6FE0'}},SH=['lingkaran'];
+const rnd=n=>Math.floor(Math.random()*n),imgSrc=(k,n)=>U(n+'.png');
+function fbSvg(n){ // pengganti jika gambar gagal dimuat: kartu bertuliskan nama objek + "gambar tidak ada"
+ const nm=String(n).slice(0,9),t=(y,z,c,x,w)=>'<text x="50" y="'+y+'" font-size="'+z+'" '+(w?'font-weight="700" ':'')+'text-anchor="middle" fill="'+c+'" font-family="sans-serif">'+x+'</text>';
+ return 'data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect x="4" y="4" width="92" height="92" rx="14" fill="#FFF3C4" stroke="#C0392B" stroke-width="5" stroke-dasharray="9 6"/>'+t(46,nm.length>6?19:24,'#1B2340',nm,1)+t(68,13,'#C0392B','gambar')+t(83,13,'#C0392B','tidak ada')+'</svg>')}
+function owlFail(im){im.onerror=null;MISS.add('maskot.png');im.src='data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 130">'+$('owlsym').innerHTML+'</svg>')} // maskot.png gagal -> Owl gambar bawaan
+function imgFail(im){im.onerror=null;MISS.add(im.dataset.p);im.src=fbSvg(im.dataset.n);im.title='Gambar tidak ditemukan: '+im.dataset.p}
+function preload(){const u=[];Object.keys(CAT).forEach(k=>CAT[k].it.forEach(n=>u.push(imgSrc(k,n))));SH.forEach(n=>u.push(imgSrc('bentuk',n)));u.push('maskot.png');u.forEach(x=>{const i=new Image();i.src=x})}
+const blockStage=()=>{const l=pool.filter(n=>!M[n].ok).map(n=>M[n].r);return l.length?Math.min(...l):3}; // tahap aktif = tahap terendah angka yang belum paham -> SEMUA soal bertahap sama
+const TRANS={2:['transisi-bentuk.mp3','Sekarang, coba hitung bentuk!'],3:['transisi-angka.mp3','Sekarang, ayo cari angka!']};
+function renderItems(t){ // tahap 1 = gambar buah/hewan/benda, 2 = bentuk (kotak/lingkaran), 3 = angka saja
+ const r=Q.rep=blockStage(),it=$('items');let k,n;
+ if(r===3){Q.cat='';Q.noun='';Q.obj='';$('ptext').innerHTML='Tekan angka <b>'+t+'</b>';it.style.display='none';it.innerHTML='';return}
+ if(r===1){const ks=Object.keys(CAT).filter(x=>x!==lastCat);k=ks[rnd(ks.length)];n=CAT[k].it[rnd(CAT[k].it.length)];Q.noun=n}
+ else{k='bentuk';n=SH[rnd(SH.length)];Q.noun=n}
+ Q.cat=k;lastCat=k;Q.obj=n;
+ $('ptext').innerHTML='Ada berapa <b>'+Q.noun+'</b>?';
+ const rows=t<=5?[t]:[Math.ceil(t/2),Math.floor(t/2)];   // baris seimbang & simetris: 6=3+3, 7=4+3, 9=5+4
+ it.style.display='flex';
+ it.innerHTML=rows.map(c=>'<div class="irow">'+Array.from({length:c},()=>`<img class="ob" src="${imgSrc(k,n)}" data-k="${k}" data-n="${n}" data-p="${imgSrc(k,n)}" alt="${n}" draggable="false" onerror="imgFail(this)">`).join('')+'</div>').join('');
+}
+function newQ(){
+ const bs=blockStage(),cand=pool.filter(x=>M[x].ok||M[x].r===bs),pk=cand.filter(x=>x!==Q.target),bag=[]; // hanya angka pada tahap aktif (+ ulasan angka yang sudah paham)
+ (pk.length?pk:cand).forEach(x=>{for(let i=0;i<(M[x].ok?1:3);i++)bag.push(x)});
+ const t=bag[Math.floor(Math.random()*bag.length)],n=choiceCount();
+ const ch=[t,...pool.filter(x=>x!==t).sort(()=>Math.random()-.5).slice(0,n-1)].sort(()=>Math.random()-.5);
+ Q.target=t;renderItems(t);
+ const c=$('choices');c.style.gridTemplateColumns='repeat('+(n===3?3:2)+',1fr)';
+ c.innerHTML=ch.map((x,i)=>`<button class="num" data-n="${x}" style="--c:${COL[i].c};--t:${COL[i].t};--d:${COL[i].d}">${x}</button>`).join('');
+}
+async function startQ(){
+ if(!inGame)return;const id=++qid;
+ newQ();hideOwl();S.bantuan=false;S.waktu=cfg.t;Q.clean=true;Q.exp=0;Q.w=0;Q.t0=Date.now();phase='instr';draw();
+ const tr=stagePrev&&Q.rep>stagePrev?TRANS[Q.rep]:null;stagePrev=Q.rep;
+ if(tr){S.tingkat=Math.max(S.tingkat,1);S.mandiri=0;toast(Q.rep===2?'Tahap bentuk!':'Tahap angka!');   // naik tahap: Owl siaga lagi, lalu di-fading
+  await A.play(tr[0],tr[1]);if(id!==qid)return}                                                          // transisi-bentuk / transisi-angka SEBELUM soal pertama tahap baru
+ await askQ();           // instruksi diputar utuh dulu
+ if(id===qid)begin();              // baru timer mulai
+}
+function begin(){deadline=Date.now()+cfg.t*1000;Q.t0=Date.now();phase='wait'}
+let HELP_WAIT=6000,HELP_REPEAT=10000; // ms: jeda sebelum 'pasti-bisa.mp3' setelah petunjuk, lalu diulang tiap HELP_REPEAT
+async function countAloud(id){ // Owl menyorot tiap <img> berurutan: hitung-1.mp3 ... hitung-N.mp3, lalu ada-N.mp3
+ const it=[...$('items').querySelectorAll('.ob')];
+ for(let i=0;i<Q.target;i++){
+  if(id!==qid)return false;
+  it.forEach(e=>e.classList.remove('hl'));it[i].classList.add('hl');$('bubble').textContent=String(i+1);
+  await A.play('hitung-'+(i+1)+'.mp3',NW[i+1]);      // file belum ada -> lanjut tanpa suara
+ }
+ if(id!==qid)return false;
+ it.forEach(e=>e.classList.remove('hl'));$('bubble').textContent='Ada '+Q.target+'!';
+ await A.play('ada-'+Q.target+'.mp3','Ada '+NW[Q.target]+'!');
+ return id===qid;
+}
+function helpMode(){ // scaffolding bertingkat + fading
+ const lvl=M[Q.target].ok?Math.min(S.tingkat,1):S.tingkat; // angka sudah paham -> bantuan dikurangi
+ if(lvl===0)return null;                  // tingkat 0: Owl tidak boleh muncul
+ if(Q.exp===1)return 'edge';              // timeout ke-1 (semua level): semangat di tepi layar
+ return lvl===2?'target':'half'; // ke-2/3: Owl di atas jawaban benar (tingkat 2) / di separuh sisi benar (tingkat 1)
+}
+async function expire(){ // dipanggil sekali per timeout
+ Q.exp++;const id=qid,mode=helpMode();
+ phase=(!mode||mode==='edge')?'instr':'help';  // fase diganti SEBELUM await -> tidak bisa terpicu ganda
+ if(!mode){await askQ();if(id===qid)begin();return}
+ Q.clean=false;st.owl++;
+ if(mode==='edge'){showOwl('edge');await A.play('semangat.mp3','Semangat! Kamu pasti bisa.');if(id===qid)begin();return} // Owl muncul + semangat.mp3, timer diulang
+ S.bantuan=true;hdl=Infinity;
+ if(Q.rep<3){showOwl('center');if(!await countAloud(id))return}  // Owl menghitung satu per satu, lalu "ada-N"
+ showOwl(mode);                                                   // Owl bergerak ke tombol angka yang benar
+ await pointAudio();                                              // ini-dia-N.mp3
+ if(id===qid&&phase==='help')hdl=Date.now()+HELP_WAIT;            // belum menekan -> pasti-bisa.mp3
+}
+
+/* ===== Owl: lane sendiri, tidak menutupi tombol ===== */
+function showOwl(mode){
+ owlMode=mode;
+ const o=$('owl'),W=$('lane').getBoundingClientRect(),L=W.width,tb=[...$('choices').children].find(b=>+b.dataset.n===Q.target),r=tb.getBoundingClientRect(),cx=r.left-W.left+r.width/2;let x,txt;
+ if(mode==='target'){x=cx-45;txt='Ini dia!';tb.classList.add('glow')}       // tepat di atas jawaban benar
+ else if(mode==='edge'){x=cx<L/2?L-90:0;txt='Semangat!'}                    // tepi, sisi berlawanan jawaban
+ else if(mode==='half'){x=(cx<L/2?L*.25:L*.75)-45;txt='Di sini ya!'}  // separuh sisi benar, tanpa menyala
+ else{x=L/2-45;txt=Q.rep<3?'Ayo hitung!':'Ayo coba!'}
+ x=Math.max(0,Math.min(L-90,x));$('bubble').textContent=txt;
+ const side=x+45<L/2?'r':'l';
+ if(o.classList.contains('show')){o.classList.remove('r','l');o.classList.add(side);o.style.left=x+'px'} // sudah tampil: geser mulus
+ else{o.classList.remove('r','l');o.classList.add('snap',side);o.style.left=x+'px';void o.offsetWidth;o.classList.remove('snap');o.classList.add('show')}
+}
+function hideOwl(){owlMode='';$('owl').classList.remove('show');document.querySelectorAll('.glow').forEach(b=>b.classList.remove('glow'));document.querySelectorAll('.hl').forEach(b=>b.classList.remove('hl'))}
+
+/* ===== Jawaban ===== */
+function press(btn){
+ audio();if(paused||!inGame||phase==='done'||phase==='idle')return;
+ const n=+btn.dataset.n,t=Q.target,m=M[t];
+ if(n!==t){ // salah: getar + merah, lalu kembali normal; suara hanya jika antrean kosong (tidak memotong)
+  Q.clean=false;Q.w++;st.salah++;m.salah++;m.streak=0;
+  btn.classList.remove('shake','bad');void btn.offsetWidth;btn.classList.add('shake','bad');setTimeout(()=>btn.classList.remove('shake','bad'),900);
+  if(!A.n){A.fx('no');A.play('salah.mp3',Q.rep<3?'Coba hitung lagi ya.':'Coba lagi ya.')}return}
+ const helped=S.bantuan,clean=Q.clean,rt=(Date.now()-Q.t0)/1000,msgs=[];
+ phase='done';qid++;btn.classList.add('pop');st.benar++;m.benar++;
+ hideOwl();if(helped){S.mandiri=0;st.bant++;m.bantu++;S.bantuan=false}else{S.mandiri++;st.mand++}
+ st.log.push({k:helped?'b':'m',rt,n:t,w:Q.w});S.waktu=cfg.t;
+ m.streak=clean?m.streak+1:0;                       // mastery: benar berturut-turut TANPA Owl & TANPA salah
+ A.fx(clean?'big':'ok');{const i=rnd(3);A.play('benar-'+(i+1)+'.mp3',PRAISE[i])}  // pujian rekaman (benar-1/2/3.mp3)
+ const full=m.streak>=cfg.N&&m.r===3&&!m.ok,stageUp=m.streak>=cfg.N&&m.r<3&&!m.ok,unlock=full&&pool.length<10&&pool.every(x=>x===t||M[x].ok);
+ if(S.mandiri>=3&&!unlock&&!stageUp){S.tingkat=Math.max(0,S.tingkat-1);S.mandiri=0;msgs.push(S.tingkat?'🎉 Tiga kali benar!':'🌟 Mandiri!');A.fx('level');A.play('streak-3.mp3','Hebat sekali! Tiga kali benar berturut-turut!')}
+ if(stageUp){m.r++;m.streak=0; // angka ini lulus tahapnya; tahap soal berganti setelah SEMUA angka aktif lulus
+  msgs.push('⭐ Angka '+t+' lulus tahap '+['benda','bentuk'][m.r-2]);A.fx('level')}
+ if(full){m.ok=true;msgs.push('Angka '+t+' paham ⭐');A.play('mastery-angka-'+t+'.mp3','Angka '+NW[t]+' sudah kamu pahami!');
+  if(pool.every(x=>M[x].ok)&&pool.length<10){const c0=choiceCount();pool.push(pool.length+1);const up=choiceCount()>c0;
+   S.tingkat=up?2:Math.max(S.tingkat,1);S.mandiri=0;  // materi lebih sulit -> Owl kembali menemani, lalu di-fading lagi
+   msgs.push(up?'⬆️ Level naik!':'Angka baru: '+pool.length);A.play(['kenalan-angka-'+pool.length+'.mp3',pool.length+'.mp3'],'Kenalan dengan angka '+NW[pool.length]+', yuk!')}}  // setelah mastery-angka-N selesai; soal angka baru baru muncul sesudahnya
+ if(msgs.length){confetti();toast(msgs.join(' · '))}
+ draw();const id=qid;
+ A.q.then(()=>wait(500)).then(()=>{if(id===qid&&inGame&&!paused)startQ()}); // pindah soal hanya setelah SEMUA audio selesai
+}
+function toast(t){const e=$('toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2800)}
+function confetti(){const e=['⭐','🎉','✨','🎊'];for(let i=0;i<36;i++){const d=document.createElement('div');d.className='conf';d.textContent=e[i%4];d.style.left=Math.random()*100+'vw';d.style.animationDelay=Math.random()*.6+'s';document.body.appendChild(d);setTimeout(()=>d.remove(),3400)}}
+
+/* ===== Navigasi, pause, dialog ===== */
+function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id))}
+function pause(){if(paused||!inGame)return;paused=true;pAt=Date.now();pPhase=phase;qid++;A.clear()}
+function resume(){
+ if(!paused)return;paused=false;const d=Date.now()-pAt,id=++qid;
+ if(pPhase==='wait'){deadline+=d;Q.t0+=d}
+ else if(pPhase==='instr'){askQ().then(()=>{if(id===qid)begin()})}
+ else if(pPhase==='help'){pointAudio()}
+ else if(pPhase==='done')startQ();
+}
+function leaveGame(){inGame=false;phase='idle';paused=false;qid++;A.clear();hideOwl();show('menu')}
+const closeGuide=()=>$('guide').classList.remove('on');
+$('menuGuide').onclick=()=>$('guide').classList.add('on');
+$('gok').onclick=$('gx').onclick=closeGuide;
+$('guide').onclick=e=>{if(e.target.id==='guide')closeGuide()};
+addEventListener('keydown',e=>{if(e.key==='Escape')closeGuide()});
+$('owlMenu').onclick=()=>{audio();const o=$('owlMenu');o.classList.remove('hit');void o.getBoundingClientRect();o.classList.add('hit');o.onanimationend=()=>o.classList.remove('hit');  // efek pulse/bounce
+ if(!A.n)A.play('salam-awal.mp3','Halo! Aku Owl. Ayo kita belajar angka bersama!')};
+$('owlMenu').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();$('owlMenu').onclick()}};
+$('play').onclick=()=>{audio();preload();show('game');inGame=true;paused=false;startQ()};
+$('exit').onclick=()=>{pause();$('confirm').classList.add('on');A.play('konfirmasi-keluar.mp3','Mau keluar dari permainan?')};
+$('stay').onclick=()=>{$('confirm').classList.remove('on');resume()};
+$('leave').onclick=()=>{$('confirm').classList.remove('on');leaveGame()};
+$('guru').onclick=()=>{pause();openDash()};
+$('menuDash').onclick=openDash;
+$('dclose').onclick=()=>{$('dash').classList.remove('on');resume()};
+$('choices').onclick=e=>{const b=e.target.closest('.num');if(b)press(b)};
+$('again').onclick=()=>{audio();if(inGame&&!paused&&!A.n&&phase!=='done')askQ()};
+$('setT').onchange=e=>cfg.t=+e.target.value;
+$('setN').onchange=e=>cfg.N=+e.target.value;
+$('setM').onchange=e=>cfg.maxC=+e.target.value;
+$('setS').onchange=e=>{on=e.target.checked;if(!on)A.clear()};
+function doReset(){Object.assign(S,{mandiri:0,tingkat:2,bantuan:false,waktu:cfg.t});Object.assign(st,{benar:0,mand:0,bant:0,salah:0,owl:0,log:[]});initM();Q.target=0;
+ if(inGame){qid++;A.clear();hideOwl();phase='done';pPhase='done'}dash()}
+let rT;const RL='🗑️ Reset Data Belajar';
+$('reset').onclick=()=>{const b=$('reset');
+ if(b.classList.contains('arm')){clearTimeout(rT);b.classList.remove('arm');b.textContent=RL;doReset();return}
+ b.classList.add('arm');b.textContent='Ketuk sekali lagi untuk menghapus semua data';
+ rT=setTimeout(()=>{b.classList.remove('arm');b.textContent=RL},4000)};
+addEventListener('keydown',e=>{const b=[...$('choices').children].find(x=>x.dataset.n===e.key);if(b&&inGame)press(b)});
+addEventListener('resize',()=>{if(owlMode)showOwl(owlMode)});
+
+/* ===== Panduan / onboarding mode guru ===== */
+const TOUR=[
+ {t:'Selamat datang, Guru & Orang Tua 👋',b:'Halaman ini dibuat sederhana: cukup lihat 3 kartu untuk tahu kemajuan anak. Panduan ini bisa dibuka lagi lewat tombol <b>? Panduan</b>.'},
+ {t:'1. Status Kemandirian',b:'Badge menunjukkan seberapa sering anak menjawab benar <b>tanpa bantuan Owl</b> (dari 20 soal terakhir): 🟢 Sangat Mandiri (di atas 75%), 🟡 Sedang Belajar (40–75%), 🟠 Butuh Dampingan (di bawah 40%).'},
+ {t:'2. Penguasaan Angka',b:'🏆 berarti angka sudah paham (benar berturut-turut tanpa Owl dan tanpa salah), ⭐ berarti sedang dilatih (tahap Benda → Bentuk → Angka), 🔒 berarti belum terbuka. Angka baru terbuka satu per satu setelah angka sebelumnya paham.'},
+ {t:'3. Saran & Reset',b:'Kartu saran memberi ide kegiatan di rumah sesuai kondisi anak. Pengaturan timer ada di bagian <b>⚙️ opsional</b>. Tombol <b>Reset Data Belajar</b> ada di paling bawah dan perlu diketuk dua kali.'}];
+let ti=0;
+function tour(i){ti=i;const x=TOUR[i];$('tstep').textContent='Langkah '+(i+1)+' dari '+TOUR.length;$('ttitle').textContent=x.t;$('tbody').innerHTML=x.b;
+ $('tdots').innerHTML=TOUR.map((_,j)=>`<i class="${j===i?'on':''}"></i>`).join('');$('tprev').style.visibility=i?'visible':'hidden';
+ $('tnext').textContent=i===TOUR.length-1?'Selesai ✓':'Lanjut →';$('tour').classList.add('on')}
+function endTour(){$('tour').classList.remove('on');try{localStorage.setItem('tourSeen','1')}catch(e){}}
+function openDash(){$('dash').classList.add('on');dash();let seen=0;try{seen=localStorage.getItem('tourSeen')}catch(e){}if(!seen)tour(0)}
+$('tnext').onclick=()=>ti<TOUR.length-1?tour(ti+1):endTour();
+$('tprev').onclick=()=>tour(ti-1);$('tskip').onclick=endTour;$('dhelp').onclick=()=>tour(0);
+
+/* ===== Pemeriksa file (untuk GitHub Pages) ===== */
+function fileList(){const f=[];Object.keys(CAT).forEach(k=>CAT[k].it.forEach(n=>f.push(imgSrc(k,n),U('soal-'+n+'.mp3'))));SH.forEach(n=>f.push(imgSrc('bentuk',n),U('soal-'+n+'.mp3')));
+ ['salam-awal','semangat','pasti-bisa','streak-3','salah','konfirmasi-keluar'].forEach(n=>f.push(n+'.mp3'));
+ for(let i=1;i<=10;i++)f.push('hitung-'+i+'.mp3','ada-'+i+'.mp3','ini-dia-'+i+'.mp3','mastery-angka-'+i+'.mp3');
+ for(let i=1;i<=3;i++)f.push('benar-'+i+'.mp3');f.push('maskot.png','transisi-bentuk.mp3','transisi-angka.mp3');for(let i=1;i<=10;i++)f.push('soal-'+i+'.mp3');for(let i=3;i<=10;i++)f.push('kenalan-angka-'+i+'.mp3');return f}
+$('chk').onclick=async()=>{const o=$('chkout');o.dataset.run='1';
+ if(location.protocol==='file:'){o.textContent='Pemeriksaan hanya bisa dijalankan dari GitHub Pages atau server (bukan file:// di komputer).';return}
+ o.textContent='Memeriksa…';const bad=[],L=fileList();
+ for(const u of L){try{const r=await fetch(u+'?c='+Date.now(),{method:'HEAD',cache:'no-store'});if(!r.ok)bad.push(u)}catch(e){bad.push(u)}}
+ o.innerHTML=bad.length?'⚠️ '+bad.length+' dari '+L.length+' file belum ditemukan (bagian itu akan sunyi sampai file diunggah):<br>'+bad.join('<br>')+'<br>Periksa: nama file harus huruf kecil semua, dan semua file .png/.mp3 diunggah di folder yang sama dengan index.html.':'✅ Semua '+L.length+' file ditemukan.'};
+/* ===== Render ===== */
+function draw(){
+ $('ring').style.strokeDashoffset=226*(1-S.waktu/cfg.t);$('ring').classList.toggle('soft',phase==='wait'&&S.waktu<=3);
+ $('tnum').textContent=Math.ceil(S.waktu);
+ document.querySelectorAll('.star').forEach((s,i)=>s.classList.toggle('on',i<S.mandiri));
+ if($('dash').classList.contains('on'))dash();
+}
+const setH=(id,h)=>{const e=$(id);if(e._h!==h){e._h=h;e.innerHTML=h}};
+function tips(pc){
+ const t=[],att=Object.keys(M).map(Number).filter(n=>M[n].benar+M[n].salah>0);
+ const hard=att.filter(n=>!M[n].ok&&M[n].salah+M[n].bantu>=2).sort((a,b)=>M[b].salah+M[b].bantu-M[a].salah-M[a].bantu)[0];
+ if(pc===null)t.push('Mulailah dengan sesi singkat 5–10 menit di tempat tenang. Duduk di samping anak dan beri pujian setiap kali ia menekan tombol.');
+ else{
+  if(hard)t.push('Anak masih butuh waktu saat mengenali Angka '+hard+'. Cobalah ajak anak menunjuk atau menghitung '+hard+' benda di sekitar rumah (misalnya '+hard+' sendok), sambil menyebut "angka '+hard+'".');
+  if(pc>75)t.push('Anak sudah sangat mandiri. Beri kesempatan menjawab sendiri dan rayakan keberhasilannya dengan pujian atau tos.');
+  else if(pc>=40)t.push('Beri anak beberapa detik untuk mencoba sendiri sebelum Anda membantu. Owl akan membantu bila diperlukan.');
+  else t.push('Dampingi anak duduk di sampingnya, ucapkan angkanya bersama-sama, dan beri pujian untuk setiap usaha, sekecil apa pun.');
+  const cur=pool.find(n=>!M[n].ok);
+  if(cur&&M[cur].r<3)t.push('Saat anak berlatih dengan gambar benda atau bentuk, ajak ia menyentuh dan menghitung satu per satu dengan jari sambil menyebut angkanya.');
+  const ok=pool.filter(n=>M[n].ok);
+  if(ok.length)t.push('Angka '+ok.join(', ')+' sudah dipahami. Bantu anak mengingatnya dengan mencari angka itu di jam, nomor rumah, atau uang.');
+ }
+ t.push('Sesi singkat 5–10 menit yang rutin setiap hari lebih efektif daripada sesi panjang. Jika anak mulai lelah, beri istirahat.');
+ return t;
+}
+function dash(){
+ const L=st.log.slice(-20),pc=L.length?Math.round(L.filter(x=>x.k==='m').length/L.length*100):null;
+ let cls='b-n',txt='⚪ Belum ada data',msg='Belum ada latihan. Ajak anak menekan tombol Mulai, Owl siap menemani! 🦉';
+ if(pc!==null){
+  if(pc>75){cls='b-g';txt='🟢 Sangat Mandiri'}else if(pc>=40){cls='b-y';txt='🟡 Sedang Belajar'}else{cls='b-o';txt='🟠 Butuh Dampingan'}
+  msg=st.mand?(pc>75?'Hebat! ':pc>=40?'Bagus, terus semangat! ':'Tidak apa-apa, setiap anak belajar dengan caranya sendiri. ')+'Anak berhasil menjawab '+st.mand+' soal secara mandiri tanpa bantuan!'
+   :'Setiap langkah kecil berarti. Owl siap menemani anak belajar, ayo coba lagi bersama!';
+ }
+ $('badge').className='badge '+cls;$('badge').textContent=txt;
+ $('pct').textContent=pc===null?'':pc+'% jawaban benar tanpa bantuan (dari '+L.length+' soal terakhir)';
+ $('sum').textContent=msg;
+ setH('mgrid',Array.from({length:10},(_,i)=>{const n=i+1,m=M[n],lock=!pool.includes(n);
+  const [c,ic,lb]=lock?['lock','🔒','Belum terbuka']:m.ok?['ok','🏆','Paham']:['trn','⭐',['Benda','Bentuk','Angka'][m.r-1]+' '+Math.min(m.streak,cfg.N)+'/'+cfg.N];
+  return `<div class="mc ${c}"><strong>${n}</strong><i class="ic">${ic}</i><span>${lb}</span></div>`}).join(''));
+ setH('tips',tips(pc).map(x=>'<li>'+x+'</li>').join(''));
+ const lv=['Mandiri','Isyarat','Bantuan penuh'];
+ if(!$('chkout').dataset.run)$('chkout').textContent=MISS.size?'Gagal dimuat: '+[...MISS].join(', '):'';
+ $('v1').textContent=S.mandiri;$('v2').textContent=S.tingkat+' · '+lv[S.tingkat];$('v3').textContent=S.bantuan;$('v4').textContent=Math.ceil(S.waktu)+' dtk';
+}
+setInterval(()=>{
+ if(inGame&&!paused&&phase==='wait'){const r=(deadline-Date.now())/1000;S.waktu=Math.max(0,r);if(r<=0)expire()} // expire() langsung mengubah phase, jadi tidak bisa terpicu dua kali
+ else if(inGame&&!paused&&phase==='help'){
+  if(!$('owl').classList.contains('show'))showOwl(owlMode); // pengaman: Owl harus tampil selama fase bantuan
+  if(!A.n&&Date.now()>hdl){hdl=Date.now()+HELP_REPEAT;Q.exp++;A.play('pasti-bisa.mp3','Kamu pasti bisa!')}}
+ draw();
+},100);
+</script></body></html>
